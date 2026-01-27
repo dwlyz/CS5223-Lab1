@@ -16,6 +16,7 @@ public final class AMOApplication<T extends Application> implements Application 
   @Getter @NonNull private final T application;
 
   // Your code here...
+  private final java.util.Map<dslabs.framework.Address, AMOResult> executed = new java.util.HashMap<>();
 
   @Override
   public AMOResult execute(Command command) {
@@ -25,8 +26,14 @@ public final class AMOApplication<T extends Application> implements Application 
 
     AMOCommand amoCommand = (AMOCommand) command;
 
-    // Your code here...
-    return null;
+    if (alreadyExecuted(amoCommand)) {
+      return executed.get(amoCommand.address());
+    }
+
+    Result result = application.execute(amoCommand.command());
+    AMOResult amoResult = new AMOResult(result, amoCommand.sequenceNum());
+    executed.put(amoCommand.address(), amoResult);
+    return amoResult;
   }
 
   public Result executeReadOnly(Command command) {
@@ -43,6 +50,7 @@ public final class AMOApplication<T extends Application> implements Application 
 
   public boolean alreadyExecuted(AMOCommand amoCommand) {
     // Your code here...
-    return false;
+    AMOResult saved = executed.get(amoCommand.address());
+    return saved != null && saved.sequenceNum() >= amoCommand.sequenceNum();
   }
 }

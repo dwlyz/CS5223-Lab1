@@ -1,5 +1,7 @@
 package dslabs.clientserver;
 
+import dslabs.atmostonce.AMOCommand;
+import dslabs.atmostonce.AMOResult;
 import dslabs.framework.Address;
 import dslabs.framework.Client;
 import dslabs.framework.Command;
@@ -68,9 +70,8 @@ class SimpleClient extends Node implements Client {
    *  Message Handlers
    * ---------------------------------------------------------------------------------------------*/
   private synchronized void handleReply(Reply m, Address sender) {
-    // Your code here...
-    if (m.sequenceNum() == sequenceNum) {
-      currentResult = m.result();
+    if (m.result().sequenceNum() == sequenceNum) {
+      currentResult = m.result().result();
       notify();
     }
   }
@@ -79,7 +80,6 @@ class SimpleClient extends Node implements Client {
    *  Timer Handlers
    * ---------------------------------------------------------------------------------------------*/
   private synchronized void onClientTimer(ClientTimer t) {
-    // Your code here...
     if (t.sequenceNum() == sequenceNum && currentResult == null) {
       sendRequest();
     }
@@ -88,7 +88,7 @@ class SimpleClient extends Node implements Client {
   /* Assistant function for send  
    */
   private void sendRequest() {
-    send(new Request(currentCommand, sequenceNum), serverAddress);
+    send(new Request(new AMOCommand(currentCommand, sequenceNum, address())), serverAddress);
     set(new ClientTimer(sequenceNum), ClientTimer.CLIENT_RETRY_MILLIS);
   }
 }
