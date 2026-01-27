@@ -3,6 +3,7 @@ package dslabs.clientserver;
 import dslabs.framework.Address;
 import dslabs.framework.Client;
 import dslabs.framework.Command;
+import dslabs.framework.Result;
 import dslabs.framework.Node;
 import dslabs.framework.Result;
 import lombok.EqualsAndHashCode;
@@ -18,7 +19,10 @@ import lombok.ToString;
 class SimpleClient extends Node implements Client {
   private final Address serverAddress;
 
-  // Your code here...
+  // Init to store
+  private int sequenceNum;
+  private Command currentCommand;
+  private Result currentResult;
 
   /* -----------------------------------------------------------------------------------------------
    *  Construction and Initialization
@@ -38,19 +42,26 @@ class SimpleClient extends Node implements Client {
    * ---------------------------------------------------------------------------------------------*/
   @Override
   public synchronized void sendCommand(Command command) {
-    // Your code here...
+    sequenceNum++;
+    currentCommand = command;
+    currentResult = null;
+
+    sendRequest();
   }
 
   @Override
   public synchronized boolean hasResult() {
-    // Your code here...
-    return false;
+    // if null, return false else true
+    return currentResult != null;
   }
 
   @Override
   public synchronized Result getResult() throws InterruptedException {
-    // Your code here...
-    return null;
+    // use a while loop to block until result
+    while (currentResult == null) {
+      wait();
+    }
+    return currentResult;
   }
 
   /* -----------------------------------------------------------------------------------------------
@@ -58,6 +69,10 @@ class SimpleClient extends Node implements Client {
    * ---------------------------------------------------------------------------------------------*/
   private synchronized void handleReply(Reply m, Address sender) {
     // Your code here...
+    if (m.sequenceNum() == sequenceNum) {
+      currentResult = m.result();
+      notify();
+    }
   }
 
   /* -----------------------------------------------------------------------------------------------
@@ -65,5 +80,15 @@ class SimpleClient extends Node implements Client {
    * ---------------------------------------------------------------------------------------------*/
   private synchronized void onClientTimer(ClientTimer t) {
     // Your code here...
+    if (t.sequenceNum() == sequenceNum && currentResult == null) {
+      sendRequest();
+    }
+  }
+
+  /* Assistant function for send  
+   */
+  private void sendRequest() {
+    send(new Request(currentCommand, sequenceNum), serverAddress);
+    set(new ClientTimer(sequenceNum), ClientTimer.CLIENT_RETRY_MILLIS);
   }
 }
