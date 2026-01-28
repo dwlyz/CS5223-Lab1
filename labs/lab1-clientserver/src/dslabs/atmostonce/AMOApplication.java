@@ -15,8 +15,8 @@ import lombok.ToString;
 public final class AMOApplication<T extends Application> implements Application {
   @Getter @NonNull private final T application;
 
-  // Your code here...
-  private final java.util.Map<dslabs.framework.Address, AMOResult> executed = new java.util.HashMap<>();
+  // Use a map to store executed command since stated in piazza that map is allowed
+  private final java.util.Map<dslabs.framework.Address, AMOResult> executedCommandMap = new java.util.HashMap<>();
 
   @Override
   public AMOResult execute(Command command) {
@@ -26,13 +26,16 @@ public final class AMOApplication<T extends Application> implements Application 
 
     AMOCommand amoCommand = (AMOCommand) command;
 
+    // check map if command already executed
     if (alreadyExecuted(amoCommand)) {
-      return executed.get(amoCommand.address());
+      return executedCommandMap.get(amoCommand.address());
     }
 
+    // if never execute, then execute
     Result result = application.execute(amoCommand.command());
     AMOResult amoResult = new AMOResult(result, amoCommand.sequenceNum());
-    executed.put(amoCommand.address(), amoResult);
+    // then store command in map
+    executedCommandMap.put(amoCommand.address(), amoResult);
     return amoResult;
   }
 
@@ -49,8 +52,8 @@ public final class AMOApplication<T extends Application> implements Application 
   }
 
   public boolean alreadyExecuted(AMOCommand amoCommand) {
-    // Your code here...
-    AMOResult saved = executed.get(amoCommand.address());
+    // Check if map has command
+    AMOResult saved = executedCommandMap.get(amoCommand.address());
     return saved != null && saved.sequenceNum() >= amoCommand.sequenceNum();
   }
 }
